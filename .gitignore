@@ -30,3 +30,5 @@
 *.exe
 *.out
 *.app
+Remote-IAQ-Monitor/arduino_secrets.h
+Remote-IAQ-Monitor/thingProperties.h
