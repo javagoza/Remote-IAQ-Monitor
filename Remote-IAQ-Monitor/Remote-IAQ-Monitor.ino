@@ -113,7 +113,7 @@ unsigned long lastTimeDisplayUpdate;
 #define LCD_LED_PWM       3
 
 #define DEBOUNCE_DELAY_MS 200
-#define DATA_LOG_INTERVAL 5000
+#define DATA_LOG_INTERVAL 300000L // 5 minutes
 
 
 Adafruit_ST7735 tft(TFT_CS, TFT_DC, TFT_RST);
