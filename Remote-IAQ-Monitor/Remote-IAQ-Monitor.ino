@@ -2,16 +2,21 @@
   This is an example for testing the Remote Indoor Air Quality Monitor
   Arduino Nano 33 IoT
   Modify Arduino_BHY2Host to support Arduino Nano 33 IoT
+  defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_SAMD_MKRWIFI1010)
+  to
+  defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
+  Arduino_BHY2Host.h 
   Author: Enrique Albertos
   Date: 2022-05-21
 */
 
-///////////////////////////////////////////////
-// nicla sense
+#define DEBUG true
 
 #include "Arduino_BHY2Host.h"
 #include <SPI.h>
 #include <Wire.h>
+
+// Display includes
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h> // Hardware-specific library for ST7735
 #include "TFTSevenSegmentDecimalDisplay.h"
@@ -19,8 +24,23 @@
 #include "fonts/FreeMonoBoldOblique18pt7b.h"
 #include "fonts/FreeMonoBold9pt7b.h"
 
+// NTP Time includes
 #include <RTCZero.h>
+#define NTPUPDATE true
+// Wifi Includes
+#ifdef NTPUPDATE
+#include <WiFiNINA.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
+#include "arduino_secrets.h"
 
+// Define NTP Client to get time
+WiFiUDP udpSocket;
+const long utcOffsetWinter = 3600; // Offset from UTC in seconds (3600 seconds = 1h) -- UTC+1 (Central European Winter Time)
+const long utcOffsetSummer = 7200; // Offset from UTC in seconds (7200 seconds = 2h) -- UTC+2 (Central European Summer Time)
+unsigned long lastupdate = 0UL;
+NTPClient ntpClient(udpSocket, "pool.ntp.org", utcOffsetWinter);
+#endif NTPUPDATE
 
 // Assign human-readable names to some common 16-bit color values:
 #define  BLACK   0x0000
@@ -31,25 +51,12 @@
 #define MAGENTA 0xF81F
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
-
-
-#define DEBUG true
-#define NTPUPDATE true
-
-// Wifi Includes
-#ifdef NTPUPDATE
-#include <WiFiNINA.h>
-#include <WiFiUdp.h>
-#include <NTPClient.h>
-
-#include "arduino_secrets.h"
-// Define NTP Client to get time
-WiFiUDP udpSocket;
-const long utcOffsetWinter = 3600; // Offset from UTC in seconds (3600 seconds = 1h) -- UTC+1 (Central European Winter Time)
-const long utcOffsetSummer = 7200; // Offset from UTC in seconds (7200 seconds = 2h) -- UTC+2 (Central European Summer Time)
-unsigned long lastupdate = 0UL;
-NTPClient ntpClient(udpSocket, "pool.ntp.org", utcOffsetWinter);
-#endif NTPUPDATE
+#define GAUGE_GREEN 0x0320
+#define GAUGE_YELLOW 0xFFE0
+#define GAUGE_ORANGE 0xFC60
+#define GAUGE_RED 0xF800
+#define ST77XX_GRAY_C8 0xCE59
+#define ST77XX_GRAY_FA 0xFFDF
 
 
 SensorBSEC co2Sensor(SENSOR_ID_BSEC);
@@ -60,56 +67,51 @@ int accuracy;
 float niclaHumidity;
 int niclaSeconds;
 int printTime = 0;
-
 /* Create an rtc object */
 RTCZero rtc;
-
-#define GAUGE_GREEN 0x0320
-#define GAUGE_YELLOW 0xFFE0
-#define GAUGE_ORANGE 0xFC60
-#define GAUGE_RED 0xF800
-#define ST77XX_GRAY_C8 0xCE59
-#define ST77XX_GRAY_FA 0xFFDF
-
 
 unsigned long lastEnvironmentUpdate;
 unsigned long lastTimeUpdate;
 unsigned long lastTimeDisplayUpdate;
 
+
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 160 // OLED display height, in pixels
+
+// Hardware, PIN assignements
 #define TFT_CS        10
 #define TFT_RST        -1 // Or set to -1 and connect to Arduino RESET pin
 #define TFT_DC         8
-
 #define LEFT_BUTTON_PIN A1
 #define RIGHT_BUTTON_PIN A7
 #define ENTER_BUTTON_PIN 9
-
 #define LCD_LED_PWM 3
 #define DEBOUNCE_DELAY_MS 200
 
 
 Adafruit_ST7735 tft(TFT_CS, TFT_DC, TFT_RST);
-// Moves counter display
+
 uint16_t backgroundColor = tft.color565(20, 20, 20);
 uint16_t foregroundColor = WHITE;
+// virtual 7 segment displays
 TFTSevenSegmentDecimalDisplay co2display(&tft, 5,50, 15, 32, foregroundColor, backgroundColor, 4);
 TFTSevenSegmentDecimalDisplay tempdisplay(&tft, 0,SCREEN_HEIGHT -30,6, 10, foregroundColor, backgroundColor, 1);
 TFTSevenSegmentDecimalDisplay humiditydisplay(&tft, SCREEN_WIDTH - 60,SCREEN_HEIGHT -30, 6, 10, foregroundColor, backgroundColor, 1);
 
-
 #define DEG2RAD 0.0174532925
 
+// icons
 const tImage termo3 = {termo6x16, 6, 16, 8};
 const tImage humidity = {humidity6x16, 6, 16, 8};
 
 bool envEnabled = false;
 bool niclaEnabled = true;
+// defaul TFT PWM LED level, 0 to 255
 int tftLedLevel = 128;
 ///////////////////////////////////////////////////////////////////////////////////////////////
 void initTFT();
 
+// states
 typedef enum  {IDLE=0, LEFT, RIGHT, ENTER} Actions;
 
 Actions action = IDLE;
@@ -120,8 +122,7 @@ void leftButtonISR() {
   if (msNow-last >DEBOUNCE_DELAY_MS) {
     action = LEFT;
     last= msNow;
-  }
-  
+  }  
 }
 
 void rightButtonISR() {
@@ -142,7 +143,31 @@ void enterButtonISR() {
   }
 }
 
+void setupNavigationButtons() {
+  pinMode(LEFT_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(RIGHT_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(ENTER_BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(LEFT_BUTTON_PIN), leftButtonISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON_PIN), rightButtonISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENTER_BUTTON_PIN), enterButtonISR, RISING);
+}
 
+void setupTftPWMLedControl() {
+  pinMode(LCD_LED_PWM, OUTPUT);
+  analogWrite(LCD_LED_PWM, tftLedLevel % 256);
+}
+
+void setupNiclaBHYHost() {
+#if DEBUG
+  BHY2Host.debug(Serial);
+#endif  
+  Serial.println("Configuring Nicla...");
+  // Update function should be continuously polled if PASSTHORUGH is ENABLED
+  // NiclaWiring NICLA_VIA_BLE
+  while (!BHY2Host.begin(false, NICLA_VIA_BLE)) {}
+  Serial.println("NICLA device found!");
+  co2Sensor.begin();
+}
 
 void setup() {
 
@@ -150,29 +175,11 @@ void setup() {
   Serial.begin(115200);
   delay(1500);
 #endif
-  pinMode(LEFT_BUTTON_PIN, INPUT_PULLUP);
-  pinMode(RIGHT_BUTTON_PIN, INPUT_PULLUP);
-  pinMode(ENTER_BUTTON_PIN, INPUT_PULLUP);
-  pinMode(LCD_LED_PWM, OUTPUT);
-  analogWrite(LCD_LED_PWM, tftLedLevel % 256);
 
-  attachInterrupt(digitalPinToInterrupt(LEFT_BUTTON_PIN), leftButtonISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON_PIN), rightButtonISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(ENTER_BUTTON_PIN), enterButtonISR, RISING);
-
+  setupNavigationButtons();
+  setupTftPWMLedControl();
   setupTime();
-
-///////////////////////////////////////////////
-// nicla sense
-#if DEBUG
-  BHY2Host.debug(Serial);
-#endif  
-///////////////////////////////////////////////
-// nicla sense
-  Serial.println("Configuring Nicla...");
-  while (!BHY2Host.begin(false, NICLA_VIA_BLE)) {}
-  Serial.println("NICLA device found!");
-  co2Sensor.begin();
+  setupNiclaBHYHost();
   printTime = millis();
 
   delay(2000);        
@@ -233,8 +240,6 @@ void loop()
     }
 
 }
-
-
 
 void setupTime() {
   rtc.begin();
