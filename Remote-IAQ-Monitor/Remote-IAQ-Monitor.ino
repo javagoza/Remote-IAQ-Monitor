@@ -218,8 +218,6 @@ void setup() {
   setupTime();
   setupNiclaBHYHost();
   printTime = millis();
-
-  delay(2000);        
   initTFT();
   initDisplay();
 }
@@ -301,6 +299,9 @@ void loop()
         displayTemperature((int) niclaTemperature);
         displayHumidity((int) niclaHumidity);
         displayAccuracy((int) accuracy);
+        if(isSDReady) {
+          sdLogData();
+        }
       }      
     }
 }
