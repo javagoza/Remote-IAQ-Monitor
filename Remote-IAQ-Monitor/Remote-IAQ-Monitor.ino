@@ -6,6 +6,22 @@
   to
   defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
   Arduino_BHY2Host.h 
+
+
+  Hardware
+    TFT_CS           10
+    TFT_RST       RESET
+    TFT_DC            8
+    LEFT_BUTTON_PIN  A1  INPUT_PULLUP
+    RIGHT_BUTTON_PIN A7  INPUT_PULLUP
+    ENTER_BUTTON_PIN  9  INPUT_PULLUP
+    SD_CS            A2
+    LCD_LED_PWM       3
+    TFT_CLOCK      SCK D13
+    SD_CLOCK       SCK D13
+    TFT_MOSI       MOSI D11
+    SD_MOSI        MOSI D11
+    SD_MISO        MISO D12
   Author: Enrique Albertos
   Date: 2022-05-21
 */
@@ -15,6 +31,9 @@
 #include "Arduino_BHY2Host.h"
 #include <SPI.h>
 #include <Wire.h>
+
+// SD card
+#include <SD.h>
 
 // Display includes
 #include <Adafruit_GFX.h>
@@ -40,7 +59,7 @@ const long utcOffsetWinter = 3600; // Offset from UTC in seconds (3600 seconds =
 const long utcOffsetSummer = 7200; // Offset from UTC in seconds (7200 seconds = 2h) -- UTC+2 (Central European Summer Time)
 unsigned long lastupdate = 0UL;
 NTPClient ntpClient(udpSocket, "pool.ntp.org", utcOffsetWinter);
-#endif NTPUPDATE
+#endif // NTPUPDATE
 
 // Assign human-readable names to some common 16-bit color values:
 #define  BLACK   0x0000
@@ -79,13 +98,15 @@ unsigned long lastTimeDisplayUpdate;
 #define SCREEN_HEIGHT 160 // OLED display height, in pixels
 
 // Hardware, PIN assignements
-#define TFT_CS        10
-#define TFT_RST        -1 // Or set to -1 and connect to Arduino RESET pin
-#define TFT_DC         8
-#define LEFT_BUTTON_PIN A1
+#define TFT_CS           10
+#define TFT_RST          -1 // Or set to -1 and connect to Arduino RESET pin
+#define TFT_DC            8
+#define LEFT_BUTTON_PIN  A1
 #define RIGHT_BUTTON_PIN A7
-#define ENTER_BUTTON_PIN 9
-#define LCD_LED_PWM 3
+#define ENTER_BUTTON_PIN  9
+#define SD_CS            A2
+#define LCD_LED_PWM       3
+
 #define DEBOUNCE_DELAY_MS 200
 
 
@@ -106,6 +127,7 @@ const tImage humidity = {humidity6x16, 6, 16, 8};
 
 bool envEnabled = false;
 bool niclaEnabled = true;
+bool isSDReady = false;
 // defaul TFT PWM LED level, 0 to 255
 int tftLedLevel = 128;
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,6 +191,17 @@ void setupNiclaBHYHost() {
   co2Sensor.begin();
 }
 
+void setupSDCardReader(){
+    // wait for SD module to start
+  if (!SD.begin(SD_CS)) {
+    Serial.println("No SD Module Detected");
+    isSDReady = false;
+  } else {
+    Serial.println("SD Module Detected");
+    isSDReady = true;
+  }
+}
+
 void setup() {
 
 #ifdef DEBUG
@@ -178,6 +211,7 @@ void setup() {
 
   setupNavigationButtons();
   setupTftPWMLedControl();
+  setupSDCardReader();
   setupTime();
   setupNiclaBHYHost();
   printTime = millis();
@@ -228,17 +262,12 @@ void loop()
         iaq = co2Sensor.iaq();
         accuracy =  co2Sensor.accuracy();
         niclaHumidity = co2Sensor.comp_h();
-
-
         displayLevel((int)iaq);
         displayTemperature((int) niclaTemperature);
         displayHumidity((int) niclaHumidity);
         displayAccuracy((int) accuracy);
-      }
-
-      
+      }      
     }
-
 }
 
 void setupTime() {
