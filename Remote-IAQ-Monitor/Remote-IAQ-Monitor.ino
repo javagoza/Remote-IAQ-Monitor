@@ -223,23 +223,26 @@ void setup() {
 }
 
 void sdLogData() {
-  static lastDay;
+
   char fileName[14];
   char logTime[10];
   sprintf(fileName, "%04d-%02d-%02d.txt",  rtc.getYear(), rtc.getMonth(),rtc.getDay()); 
   sprintf(logTime, "%02d:%02d:%02d", rtc.getHours() , rtc.getMinutes(), rtc.getSeconds()); 
+  bool isNewFile = !SD.exists(fileName);
+
   dataLogggerFile = SD.open(fileName, FILE_WRITE);
-  if(!SD.exists(dataLogggerFile)) {
+  if(isNewFile) {
     // write header
     dataLogggerFile.println( "'time','IAQ','ACCURACY','TEMP','HUMIDITY'");
   }
+
    // if the file opened okay, write to it:
   if (dataLogggerFile) {
      dataLogggerFile.print( logTime);
      dataLogggerFile.print(",");
      dataLogggerFile.print( co2Sensor.iaq());
      dataLogggerFile.print(",");
-     dataLogggerFile.print( co2Sensor..accuracy());
+     dataLogggerFile.print( co2Sensor.accuracy());
      dataLogggerFile.print(",");
      dataLogggerFile.print( co2Sensor.comp_t());
      dataLogggerFile.print(",");
@@ -249,8 +252,8 @@ void sdLogData() {
      dataLogggerFile.close();
   } else {
     // if the file didn't open, print an error:
-    Serial.print("error opening ");
-    Serial.println(buf1);
+    Serial.print("error openning ");
+    Serial.println(dataLogggerFile);
   }
 }
 
