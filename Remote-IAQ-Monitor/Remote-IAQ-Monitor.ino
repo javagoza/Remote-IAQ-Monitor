@@ -45,6 +45,8 @@
 
 // NTP Time includes
 #include <RTCZero.h>
+
+#include <time.h>
 #define NTPUPDATE true
 // Wifi Includes
 #ifdef NTPUPDATE
@@ -86,6 +88,7 @@ int accuracy;
 float niclaHumidity;
 int niclaSeconds;
 int printTime = 0;
+int logTime = 0;
 /* Create an rtc object */
 RTCZero rtc;
 File dataLogggerFile;
@@ -110,6 +113,7 @@ unsigned long lastTimeDisplayUpdate;
 #define LCD_LED_PWM       3
 
 #define DEBOUNCE_DELAY_MS 200
+#define DATA_LOG_INTERVAL 5000
 
 
 Adafruit_ST7735 tft(TFT_CS, TFT_DC, TFT_RST);
@@ -194,7 +198,7 @@ void setupNiclaBHYHost() {
 }
 
 void setupSDCardReader(){
-   pinMode(SD_CS, OUTPUT);
+  pinMode(SD_CS, OUTPUT);
     // wait for SD module to start
   if (!SD.begin(SD_CS)) {
     Serial.println("No SD Module Detected");
@@ -207,10 +211,10 @@ void setupSDCardReader(){
 
 void setup() {
 
-#ifdef DEBUG
+
   Serial.begin(115200);
-  delay(1500);
-#endif
+  delay(2000);
+
 
   setupNavigationButtons();
   setupTftPWMLedControl();
@@ -224,20 +228,28 @@ void setup() {
 
 void sdLogData() {
 
-  char fileName[14];
+  char fileName[10];
   char logTime[10];
-  sprintf(fileName, "%04d-%02d-%02d.txt",  rtc.getYear(), rtc.getMonth(),rtc.getDay()); 
+
+
+  sprintf(fileName, "%02d%02d%02d.txt",  rtc.getYear(), rtc.getMonth(),rtc.getDay()); 
   sprintf(logTime, "%02d:%02d:%02d", rtc.getHours() , rtc.getMinutes(), rtc.getSeconds()); 
+  Serial.print("fileName :");
+  Serial.println(fileName);
+
+    Serial.print("logTime :");
+  Serial.println(logTime);
   bool isNewFile = !SD.exists(fileName);
 
   dataLogggerFile = SD.open(fileName, FILE_WRITE);
-  if(isNewFile) {
-    // write header
-    dataLogggerFile.println( "'time','IAQ','ACCURACY','TEMP','HUMIDITY'");
-  }
 
    // if the file opened okay, write to it:
   if (dataLogggerFile) {
+    if(isNewFile) {
+    // write header
+      dataLogggerFile.println( "'time','IAQ','ACCURACY','TEMP','HUMIDITY'");
+    }
+
      dataLogggerFile.print( logTime);
      dataLogggerFile.print(",");
      dataLogggerFile.print( co2Sensor.iaq());
@@ -251,9 +263,11 @@ void sdLogData() {
      // close the file:
      dataLogggerFile.close();
   } else {
-    // if the file didn't open, print an error:
-    Serial.print("error openning ");
-    Serial.println(dataLogggerFile);
+      // if the file didn't open, print an error:
+      Serial.print("error openning ");
+      Serial.println(fileName);
+      Serial.print("Log Time ");
+      Serial.println(logTime);
   }
 }
 
@@ -267,7 +281,7 @@ void loop()
       switch(action) {
         case LEFT: Serial.println("LEFT!");tftLedLevel-=10; break;
         case RIGHT:Serial.println("RIGHT!");tftLedLevel+=10;break;
-        case ENTER:Serial.println("ENTER!");tftLedLevel=128; break;
+        case ENTER:Serial.println("ENTER!");showLogs(); break;
         default: break;
       }
       tftLedLevel %=256;
@@ -292,7 +306,7 @@ void loop()
         printTime = millis();
         niclaSeconds = millis()/1000;
 #ifdef DEBUG
-        Serial.println(co2Sensor.toString());
+        //Serial.println(co2Sensor.toString());
 #endif          
         niclaTemperature = co2Sensor.comp_t();
         iaq = co2Sensor.iaq();
@@ -302,7 +316,8 @@ void loop()
         displayTemperature((int) niclaTemperature);
         displayHumidity((int) niclaHumidity);
         displayAccuracy((int) accuracy);
-        if(isSDReady) {
+        if(isSDReady &&  ( millis() - logTime) > DATA_LOG_INTERVAL) {
+          logTime = millis();
           sdLogData();
         }
       }      
@@ -328,9 +343,11 @@ void setupTime() {
   ntpClient.begin();
   envEnabled = true;
   ntpClient.update();
-  rtc.setHours(ntpClient.getHours());
-  rtc.setMinutes(ntpClient.getMinutes());
-  rtc.setSeconds(ntpClient.getSeconds());
+
+
+  rtc.setEpoch(ntpClient.getEpochTime());
+  Serial.println(ntpClient.getEpochTime() );
+
   ntpClient.end();
   WiFi.end();
   #endif
@@ -425,7 +442,7 @@ void displayDateTime()
 { 
     //ntpClient.update();
     char buf[8];
-    sprintf(buf, "%.2d:%.2d", (rtc.getHours() + 1) % 24, rtc.getMinutes());
+    sprintf(buf, "%.2d:%.2d", rtc.getHours() % 24, rtc.getMinutes());
     tft.fillRect(tft.width() - 33, 3,33,12,ST77XX_BLACK);
     tft.setFont(NULL);
     tft.setTextSize(0);
@@ -506,5 +523,35 @@ void fillArc2(int x, int y, int start_angle, int seg_count, int rx, int ry, int 
     y0 = y2;
     x1 = x3;
     y1 = y3;
+  }
+}
+
+void showLogs() {
+  File root;
+  root = SD.open("/");
+
+  printDirectory(root, 0);
+  root.close();
+}
+void printDirectory(File dir, int numTabs) {
+  while (true) {
+    File entry =  dir.openNextFile();
+    if (! entry) {
+      // no more files
+      break;
+    }
+    for (uint8_t i = 0; i < numTabs; i++) {
+      Serial.print('\t');
+    }
+    Serial.print(entry.name());
+    if (entry.isDirectory()) {
+      Serial.println("/");
+      printDirectory(entry, numTabs + 1);
+    } else {
+      // files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);
+    }
+    entry.close();
   }
 }
