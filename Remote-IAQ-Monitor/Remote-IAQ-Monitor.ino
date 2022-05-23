@@ -58,7 +58,7 @@ WiFiUDP udpSocket;
 const long utcOffsetWinter = 3600; // Offset from UTC in seconds (3600 seconds = 1h) -- UTC+1 (Central European Winter Time)
 const long utcOffsetSummer = 7200; // Offset from UTC in seconds (7200 seconds = 2h) -- UTC+2 (Central European Summer Time)
 unsigned long lastupdate = 0UL;
-NTPClient ntpClient(udpSocket, "pool.ntp.org", utcOffsetWinter);
+NTPClient ntpClient(udpSocket, "pool.ntp.org", utcOffsetSummer);
 #endif // NTPUPDATE
 
 // Assign human-readable names to some common 16-bit color values:
@@ -88,6 +88,8 @@ int niclaSeconds;
 int printTime = 0;
 /* Create an rtc object */
 RTCZero rtc;
+File dataLogggerFile;
+
 
 unsigned long lastEnvironmentUpdate;
 unsigned long lastTimeUpdate;
@@ -192,6 +194,7 @@ void setupNiclaBHYHost() {
 }
 
 void setupSDCardReader(){
+   pinMode(SD_CS, OUTPUT);
     // wait for SD module to start
   if (!SD.begin(SD_CS)) {
     Serial.println("No SD Module Detected");
@@ -219,6 +222,38 @@ void setup() {
   delay(2000);        
   initTFT();
   initDisplay();
+}
+
+void sdLogData() {
+  static lastDay;
+  char fileName[14];
+  char logTime[10];
+  sprintf(fileName, "%04d-%02d-%02d.txt",  rtc.getYear(), rtc.getMonth(),rtc.getDay()); 
+  sprintf(logTime, "%02d:%02d:%02d", rtc.getHours() , rtc.getMinutes(), rtc.getSeconds()); 
+  dataLogggerFile = SD.open(fileName, FILE_WRITE);
+  if(!SD.exists(dataLogggerFile)) {
+    // write header
+    dataLogggerFile.println( "'time','IAQ','ACCURACY','TEMP','HUMIDITY'");
+  }
+   // if the file opened okay, write to it:
+  if (dataLogggerFile) {
+     dataLogggerFile.print( logTime);
+     dataLogggerFile.print(",");
+     dataLogggerFile.print( co2Sensor.iaq());
+     dataLogggerFile.print(",");
+     dataLogggerFile.print( co2Sensor..accuracy());
+     dataLogggerFile.print(",");
+     dataLogggerFile.print( co2Sensor.comp_t());
+     dataLogggerFile.print(",");
+     dataLogggerFile.print( co2Sensor.comp_h());
+     dataLogggerFile.println("");     
+     // close the file:
+     dataLogggerFile.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.print("error opening ");
+    Serial.println(buf1);
+  }
 }
 
 void loop()
