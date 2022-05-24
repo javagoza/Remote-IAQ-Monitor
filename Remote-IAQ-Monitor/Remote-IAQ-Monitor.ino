@@ -121,9 +121,13 @@ Adafruit_ST7735 tft(TFT_CS, TFT_DC, TFT_RST);
 uint16_t backgroundColor = tft.color565(20, 20, 20);
 uint16_t foregroundColor = WHITE;
 // virtual 7 segment displays
-TFTSevenSegmentDecimalDisplay co2display(&tft, 5,50, 15, 32, foregroundColor, backgroundColor, 4);
+TFTSevenSegmentDecimalDisplay iaqdisplay(&tft, 5,50, 15, 32, foregroundColor, backgroundColor, 4);
 TFTSevenSegmentDecimalDisplay tempdisplay(&tft, 0,SCREEN_HEIGHT -30,6, 10, foregroundColor, backgroundColor, 1);
 TFTSevenSegmentDecimalDisplay humiditydisplay(&tft, SCREEN_WIDTH - 60,SCREEN_HEIGHT -30, 6, 10, foregroundColor, backgroundColor, 1);
+
+TFTSevenSegmentDecimalDisplay iaqdisplayValues(&tft, 5,SCREEN_HEIGHT/3-32, 15, 32, foregroundColor, backgroundColor, 4);
+TFTSevenSegmentDecimalDisplay tempdisplayValues(&tft, 5,SCREEN_HEIGHT/3*2-32, 15, 32, foregroundColor, backgroundColor, 4);
+TFTSevenSegmentDecimalDisplay humiditydisplayValues(&tft, 5,SCREEN_HEIGHT-48, 15, 32, foregroundColor, backgroundColor, 4);
 
 #define DEG2RAD 0.0174532925
 
@@ -141,8 +145,11 @@ void initTFT();
 
 // states
 typedef enum  {IDLE=0, LEFT, RIGHT, ENTER} Actions;
+// displays
+typedef enum {IAQDISPLAY =0, VALUESDISPLAY, GRAPHDISPLAY } Layouts;
 
 Actions action = IDLE;
+Layouts layout = IAQDISPLAY;
 
 void leftButtonISR() {
   unsigned long msNow = millis();
@@ -223,7 +230,7 @@ void setup() {
   setupNiclaBHYHost();
   printTime = millis();
   initTFT();
-  initDisplay();
+  initDisplay(layout);
 }
 
 void sdLogData() {
@@ -247,7 +254,7 @@ void sdLogData() {
   if (dataLogggerFile) {
     if(isNewFile) {
     // write header
-      dataLogggerFile.println( "'time','IAQ','ACCURACY','TEMP','HUMIDITY'");
+      dataLogggerFile.println( F("'time','IAQ','ACCURACY','TEMP','HUMIDITY','CO2EQ','VOCEQ','IAQS'"));
     }
 
      dataLogggerFile.print( logTime);
@@ -259,7 +266,13 @@ void sdLogData() {
      dataLogggerFile.print( co2Sensor.comp_t());
      dataLogggerFile.print(",");
      dataLogggerFile.print( co2Sensor.comp_h());
-     dataLogggerFile.println("");     
+     dataLogggerFile.print(",");
+     dataLogggerFile.print( co2Sensor.co2_eq());
+     dataLogggerFile.print(",");
+     dataLogggerFile.print( co2Sensor.b_voc_eq());
+     dataLogggerFile.print(",");
+     dataLogggerFile.print( co2Sensor.iaq_s());
+     dataLogggerFile.println("");           
      // close the file:
      dataLogggerFile.close();
   } else {
@@ -281,13 +294,14 @@ void loop()
       switch(action) {
         case LEFT: Serial.println("LEFT!");tftLedLevel-=10; break;
         case RIGHT:Serial.println("RIGHT!");tftLedLevel+=10;break;
-        case ENTER:Serial.println("ENTER!");showLogs(); break;
+        case ENTER:Serial.println("ENTER!");showLogs();nextLayout(); break;
         default: break;
       }
       tftLedLevel %=256;
        analogWrite(LCD_LED_PWM, tftLedLevel % 256);
       action= IDLE;
     }
+  
   if (envEnabled && msNow - lastTimeDisplayUpdate >= 1000L )
   {
       displayDateTime();
@@ -300,28 +314,71 @@ void loop()
   }
 
   if (niclaEnabled) {
-      BHY2Host.update(100);
-      
+    BHY2Host.update(100);
+    switch (layout) {
+      case IAQDISPLAY : updateIAQDisplay(); break;
+      case VALUESDISPLAY : updateValuesDisplay(); break;
+      case GRAPHDISPLAY : updateGraphDisplay(); break;
+      default: updateIAQDisplay();
+    } 
+    
+    if(isSDReady &&  ( millis() - logTime) > DATA_LOG_INTERVAL) {
+      logTime = millis();
+      sdLogData();
+    }
+  }
+}
+
+void nextLayout() {
+    switch (layout) {
+        case IAQDISPLAY : layout = VALUESDISPLAY; break;
+        case VALUESDISPLAY : layout = GRAPHDISPLAY; break;
+        case GRAPHDISPLAY :  layout =IAQDISPLAY; break;
+        default: layout = IAQDISPLAY;
+    } 
+    initDisplay(layout);
+}
+
+void updateValuesDisplay(){
+        BHY2Host.update(100);      
+      if (millis() - printTime > 1000) {
+                printTime = millis();
+                        updateSensorData();
+  iaqdisplayValues.display((int)iaq);
+  tempdisplayValues.display((int) niclaTemperature);
+  humiditydisplayValues.display((int) niclaHumidity);
+  displayAccuracy((int) accuracy);
+      }
+}
+
+void updateGraphDisplay() {
+
+
+}
+
+void updateIAQDisplay() {
+    if (niclaEnabled) {
+      BHY2Host.update(100);      
       if (millis() - printTime > 1000) {
         printTime = millis();
         niclaSeconds = millis()/1000;
-#ifdef DEBUG
-        //Serial.println(co2Sensor.toString());
-#endif          
-        niclaTemperature = co2Sensor.comp_t();
-        iaq = co2Sensor.iaq();
-        accuracy =  co2Sensor.accuracy();
-        niclaHumidity = co2Sensor.comp_h();
+        updateSensorData();
         displayLevel((int)iaq);
         displayTemperature((int) niclaTemperature);
         displayHumidity((int) niclaHumidity);
         displayAccuracy((int) accuracy);
-        if(isSDReady &&  ( millis() - logTime) > DATA_LOG_INTERVAL) {
-          logTime = millis();
-          sdLogData();
-        }
       }      
     }
+}
+
+void updateSensorData() {
+#if DEBUG
+  Serial.println(co2Sensor.toString());
+#endif          
+  niclaTemperature = co2Sensor.comp_t();
+  iaq = co2Sensor.iaq();
+  accuracy =  co2Sensor.accuracy();
+  niclaHumidity = co2Sensor.comp_h();
 }
 
 void setupTime() {
@@ -361,14 +418,29 @@ void initTFT() {
   tft.fillScreen(ST77XX_BLACK);   
 }
 
-void initDisplay(void) {
+void initDisplay(Layouts layout) {
+  Serial.println(F("Display Initialized"));
+  tft.fillScreen(ST77XX_BLACK);
+  switch (layout) {
+    case IAQDISPLAY : initIAQDisplay(); break;
+    case VALUESDISPLAY : initValuesDisplay(); break;
+    case GRAPHDISPLAY : initGraphDisplay(); break;
+    default: initIAQDisplay();
+  }    
 
-  // Use this initializer if using a 1.8" TFT screen:
+}
 
-  Serial.println(F("Initialized"));
-  tft.fillScreen(ST77XX_BLACK);    
+void initIAQDisplay() {
   tft.drawRGBBitmap(3,135, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
   tft.drawRGBBitmap( tft.width()/2+15,135, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
+}
+
+void initValuesDisplay() {
+
+}
+
+void initGraphDisplay() {
+
 }
 
 void displayTemperature(const int temperature){
@@ -394,7 +466,7 @@ void displayHumidity(const int humidity) {
   tft.print("%");
 }
 
-void displayLevel(const int co2level){
+void displayLevel(const int level){
     tft.setFont(NULL);
     //tft.setCursor(55,30);
     //tft.setTextColor(ST77XX_GRAY_FA);
@@ -408,9 +480,9 @@ void displayLevel(const int co2level){
     tft.setCursor(88,90);
     tft.setTextColor(ST77XX_GRAY_FA);
     tft.print("IAQ");
-    drawGauge(co2level, 10, 600);
+    drawGauge(level, 10, 600);
     tft.setFont(NULL);
-    co2display.display(co2level);
+    iaqdisplay.display(level);
 }
 
 void drawUpdatedValue4d(const int number, int x, int y)
