@@ -182,9 +182,9 @@ void setupNavigationButtons() {
   pinMode(LEFT_BUTTON_PIN, INPUT_PULLUP);
   pinMode(RIGHT_BUTTON_PIN, INPUT_PULLUP);
   pinMode(ENTER_BUTTON_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(LEFT_BUTTON_PIN), leftButtonISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON_PIN), rightButtonISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(ENTER_BUTTON_PIN), enterButtonISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(LEFT_BUTTON_PIN), leftButtonISR, FALLING);
+  attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON_PIN), rightButtonISR, FALLING);
+  attachInterrupt(digitalPinToInterrupt(ENTER_BUTTON_PIN), enterButtonISR, FALLING);
 }
 
 void setupTftPWMLedControl() {
