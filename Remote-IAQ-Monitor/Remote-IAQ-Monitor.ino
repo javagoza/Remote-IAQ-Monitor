@@ -345,7 +345,7 @@ void initValuesDisplay() {
   tft.print(F("iaq"));
   tft.drawRGBBitmap(10, tft.height()/2, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
   tft.drawRGBBitmap(10, tft.height()/2+30, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
-
+  updateValuesDisplay();
 
 }
 
@@ -411,15 +411,16 @@ void initGraphDisplay() {
   tft.setCursor(0,o2y+h1);
   tft.print(F("         temp"));
   tft.setCursor(0,o3y+h1);
-  tft.print(F("        % humidity"));
+  tft.print(F("     % humidity"));
 
   char fileName[10];
-  char logTime[10];
-
-
+  char title[10];
+ 
+  sprintf(title, "%02d.%02d.%02d",  rtc.getYear(), rtc.getMonth(),rtc.getDay());
   sprintf(fileName, "%02d%02d%02d.txt",  rtc.getYear(), rtc.getMonth(),rtc.getDay()); 
-  tft.setCursor(0,0);
-  tft.print(fileName);
+  tft.setCursor(3,3);
+  tft.print(title);
+
   dataLogggerFile = SD.open(fileName, FILE_READ);
 
 
