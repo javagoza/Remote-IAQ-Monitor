@@ -217,12 +217,8 @@ void setupSDCardReader(){
 }
 
 void setup() {
-
-
   Serial.begin(115200);
   delay(2000);
-
-
   setupNavigationButtons();
   setupTftPWMLedControl();
   setupSDCardReader();
@@ -292,9 +288,9 @@ void loop()
       tft.setCursor(0,0);
     
       switch(action) {
-        case LEFT: Serial.println("LEFT!");tftLedLevel-=10; break;
-        case RIGHT:Serial.println("RIGHT!");tftLedLevel+=10;break;
-        case ENTER:Serial.println("ENTER!");showLogs();nextLayout(); break;
+        case LEFT: tftLedLevel-=10; break;
+        case RIGHT: tftLedLevel+=10;break;
+        case ENTER: showLogs();nextLayout(); break;
         default: break;
       }
       tftLedLevel %=256;
@@ -339,23 +335,40 @@ void nextLayout() {
     initDisplay(layout);
 }
 
+
+
+void initValuesDisplay() {
+    tft.setTextSize(0);
+  tft.setTextColor(ST77XX_GRAY_FA);
+  tft.setFont(NULL);
+  tft.setCursor(tft.width()-20, tft.height()/2 -30);
+  tft.print(F("iaq"));
+  tft.drawRGBBitmap(10, tft.height()/2, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
+  tft.drawRGBBitmap(10, tft.height()/2+30, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
+
+
+}
+
 void updateValuesDisplay(){
-        BHY2Host.update(100);      
-      if (millis() - printTime > 1000) {
-                printTime = millis();
-                        updateSensorData();
-  iaqdisplayValues.display((int)iaq);
-  tempdisplayValues.display((int) niclaTemperature);
-  humiditydisplayValues.display((int) niclaHumidity);
-  displayAccuracy((int) accuracy);
-      }
+  BHY2Host.update(100);      
+  if (millis() - printTime > 1000) {
+    printTime = millis();
+    updateSensorData();
+    iaqdisplayValues.display((int)iaq);
+    tempdisplayValues.display((int) niclaTemperature);
+    humiditydisplayValues.display((int) niclaHumidity);
+    displayAccuracy((int) accuracy);
+  }
 }
 
-void updateGraphDisplay() {
 
 
+
+
+void initIAQDisplay() {
+  tft.drawRGBBitmap(3,135, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
+  tft.drawRGBBitmap( tft.width()/2+15,135, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
 }
-
 void updateIAQDisplay() {
     if (niclaEnabled) {
       BHY2Host.update(100);      
@@ -369,6 +382,95 @@ void updateIAQDisplay() {
         displayAccuracy((int) accuracy);
       }      
     }
+}
+
+
+
+void initGraphDisplay() {
+  int o1x = 10;
+  int o2x = o1x;
+  int o3x = o2x;
+  int o1y = 15;
+  int marginY = 8;
+  int h1 = (tft.height() -o1y) /3 - marginY;
+  int o2y = o1y + h1 + marginY ;
+  int o3y = o2y + h1 + marginY ;
+
+  int w1 = tft.width() - 2*o1x;
+  
+  tft.drawRect(o1x, o1y,w1 ,  h1, WHITE);
+  tft.drawRect(o2x, o2y, w1,  h1, WHITE);
+  tft.drawRect(o3x, o3y,w1,  h1, WHITE);
+  int length = h1 /2;
+
+  tft.setTextSize(0);
+  tft.setTextColor(ST77XX_GRAY_FA);
+  tft.setFont(NULL);
+  tft.setCursor(0,o1y+h1);
+  tft.print(F("          iaq"));
+  tft.setCursor(0,o2y+h1);
+  tft.print(F("         temp"));
+  tft.setCursor(0,o3y+h1);
+  tft.print(F("        % humidity"));
+
+  char fileName[10];
+  char logTime[10];
+
+
+  sprintf(fileName, "%02d%02d%02d.txt",  rtc.getYear(), rtc.getMonth(),rtc.getDay()); 
+  tft.setCursor(0,0);
+  tft.print(fileName);
+  dataLogggerFile = SD.open(fileName, FILE_READ);
+
+
+  int count = 0;
+  if (dataLogggerFile) {
+    // read header
+    String header = dataLogggerFile.readStringUntil( '\n');
+    Serial.println(header);
+    while (dataLogggerFile.available()) {
+      // 19:33:09,205,3,26.76,35.12,2932,28.85,293
+
+     String found = dataLogggerFile.readStringUntil( ',');
+     int fiaq = dataLogggerFile.parseInt(); // co2Sensor.iaq());
+
+     int faccuracy = dataLogggerFile.parseInt();// co2Sensor.accuracy());
+
+     float ftemp = dataLogggerFile.parseFloat();//( co2Sensor.comp_t());
+     float fhumidity = dataLogggerFile.parseFloat(); //( co2Sensor.comp_h());
+     int fco2eq = dataLogggerFile.parseInt(); // co2Sensor.co2_eq());
+     float fvoceq = dataLogggerFile.parseFloat(); // co2Sensor.b_voc_eq());
+     int fiaqs = dataLogggerFile.parseInt(); //( co2Sensor.iaq_s());
+
+     int niaq = map(fiaq, 0, 500, 0, h1);
+     int ntemp = map(ftemp, -30, 50, 0, h1);
+     int nhumidity = map(fhumidity, 0, 100, 0, h1);
+     if (count< w1-2) {
+        tft.drawFastVLine(o1x+count+1, o1y+ h1 - niaq -1 , niaq -2, GREEN);
+        tft.drawFastVLine(o2x+count+1, o2y+ h1 - ntemp -1 , ntemp -2, YELLOW);
+        tft.drawFastVLine(o3x+count+1, o3y+ h1 - nhumidity -1 , nhumidity -2, BLUE);
+    } else {
+        dataLogggerFile.close();
+        break;
+    }
+     ++count;
+
+
+    }
+    // close the file:
+    dataLogggerFile.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }
+
+
+}
+
+void updateGraphDisplay() {
+
+
+
 }
 
 void updateSensorData() {
@@ -430,18 +532,7 @@ void initDisplay(Layouts layout) {
 
 }
 
-void initIAQDisplay() {
-  tft.drawRGBBitmap(3,135, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
-  tft.drawRGBBitmap( tft.width()/2+15,135, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
-}
 
-void initValuesDisplay() {
-
-}
-
-void initGraphDisplay() {
-
-}
 
 void displayTemperature(const int temperature){
   tft.setTextSize(0);
