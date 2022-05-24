@@ -1,11 +1,11 @@
-/* 
+/*
   This is an example for testing the Remote Indoor Air Quality Monitor
   Arduino Nano 33 IoT
   Modify Arduino_BHY2Host to support Arduino Nano 33 IoT
   defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_SAMD_MKRWIFI1010)
   to
   defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT)
-  Arduino_BHY2Host.h 
+  Arduino_BHY2Host.h
 
 
   Hardware
@@ -121,13 +121,13 @@ Adafruit_ST7735 tft(TFT_CS, TFT_DC, TFT_RST);
 uint16_t backgroundColor = tft.color565(20, 20, 20);
 uint16_t foregroundColor = WHITE;
 // virtual 7 segment displays
-TFTSevenSegmentDecimalDisplay iaqdisplay(&tft, 5,50, 15, 32, foregroundColor, backgroundColor, 4);
-TFTSevenSegmentDecimalDisplay tempdisplay(&tft, 0,SCREEN_HEIGHT -30,6, 10, foregroundColor, backgroundColor, 1);
-TFTSevenSegmentDecimalDisplay humiditydisplay(&tft, SCREEN_WIDTH - 60,SCREEN_HEIGHT -30, 6, 10, foregroundColor, backgroundColor, 1);
+TFTSevenSegmentDecimalDisplay iaqdisplay(&tft, 5, 50, 15, 32, foregroundColor, backgroundColor, 4);
+TFTSevenSegmentDecimalDisplay tempdisplay(&tft, 0, SCREEN_HEIGHT - 30, 6, 10, foregroundColor, backgroundColor, 1);
+TFTSevenSegmentDecimalDisplay humiditydisplay(&tft, SCREEN_WIDTH - 60, SCREEN_HEIGHT - 30, 6, 10, foregroundColor, backgroundColor, 1);
 
-TFTSevenSegmentDecimalDisplay iaqdisplayValues(&tft, 5,SCREEN_HEIGHT/3-32, 15, 32, foregroundColor, backgroundColor, 4);
-TFTSevenSegmentDecimalDisplay tempdisplayValues(&tft, 5,SCREEN_HEIGHT/3*2-32, 15, 32, foregroundColor, backgroundColor, 4);
-TFTSevenSegmentDecimalDisplay humiditydisplayValues(&tft, 5,SCREEN_HEIGHT-48, 15, 32, foregroundColor, backgroundColor, 4);
+TFTSevenSegmentDecimalDisplay iaqdisplayValues(&tft, 5, SCREEN_HEIGHT / 3 - 32, 15, 32, foregroundColor, backgroundColor, 4);
+TFTSevenSegmentDecimalDisplay tempdisplayValues(&tft, 5, SCREEN_HEIGHT / 3 * 2 - 32, 15, 32, foregroundColor, backgroundColor, 4);
+TFTSevenSegmentDecimalDisplay humiditydisplayValues(&tft, 5, SCREEN_HEIGHT - 48, 15, 32, foregroundColor, backgroundColor, 4);
 
 #define DEG2RAD 0.0174532925
 
@@ -144,9 +144,9 @@ int tftLedLevel = 128;
 void initTFT();
 
 // states
-typedef enum  {IDLE=0, LEFT, RIGHT, ENTER} Actions;
+typedef enum  {IDLE = 0, LEFT, RIGHT, ENTER} Actions;
 // displays
-typedef enum {IAQDISPLAY =0, VALUESDISPLAY, GRAPHDISPLAY } Layouts;
+typedef enum {IAQDISPLAY = 0, VALUESDISPLAY, GRAPHDISPLAY } Layouts;
 
 Actions action = IDLE;
 Layouts layout = IAQDISPLAY;
@@ -154,27 +154,27 @@ Layouts layout = IAQDISPLAY;
 void leftButtonISR() {
   unsigned long msNow = millis();
   static unsigned long last;
-  if (msNow-last >DEBOUNCE_DELAY_MS) {
+  if (msNow - last > DEBOUNCE_DELAY_MS) {
     action = LEFT;
-    last= msNow;
-  }  
+    last = msNow;
+  }
 }
 
 void rightButtonISR() {
   unsigned long msNow = millis();
-   static unsigned long last;
-  if (msNow-last >DEBOUNCE_DELAY_MS) {
+  static unsigned long last;
+  if (msNow - last > DEBOUNCE_DELAY_MS) {
     action = RIGHT;
-    last= msNow;
+    last = msNow;
   }
 }
 
 void enterButtonISR() {
   unsigned long msNow = millis();
-   static unsigned long last;
-  if (msNow-last >DEBOUNCE_DELAY_MS) {
+  static unsigned long last;
+  if (msNow - last > DEBOUNCE_DELAY_MS) {
     action = ENTER;
-    last= msNow;
+    last = msNow;
   }
 }
 
@@ -195,7 +195,7 @@ void setupTftPWMLedControl() {
 void setupNiclaBHYHost() {
 #if DEBUG
   BHY2Host.debug(Serial);
-#endif  
+#endif
   Serial.println("Configuring Nicla...");
   // Update function should be continuously polled if PASSTHORUGH is ENABLED
   // NiclaWiring NICLA_VIA_BLE
@@ -204,9 +204,9 @@ void setupNiclaBHYHost() {
   co2Sensor.begin();
 }
 
-void setupSDCardReader(){
+void setupSDCardReader() {
   pinMode(SD_CS, OUTPUT);
-    // wait for SD module to start
+  // wait for SD module to start
   if (!SD.begin(SD_CS)) {
     Serial.println("No SD Module Detected");
     isSDReady = false;
@@ -235,78 +235,78 @@ void sdLogData() {
   char logTime[10];
 
 
-  sprintf(fileName, "%02d%02d%02d.txt",  rtc.getYear(), rtc.getMonth(),rtc.getDay()); 
-  sprintf(logTime, "%02d:%02d:%02d", rtc.getHours() , rtc.getMinutes(), rtc.getSeconds()); 
+  sprintf(fileName, "%02d%02d%02d.txt",  rtc.getYear(), rtc.getMonth(), rtc.getDay());
+  sprintf(logTime, "%02d:%02d:%02d", rtc.getHours() , rtc.getMinutes(), rtc.getSeconds());
   Serial.print("fileName :");
   Serial.println(fileName);
 
-    Serial.print("logTime :");
+  Serial.print("logTime :");
   Serial.println(logTime);
   bool isNewFile = !SD.exists(fileName);
 
   dataLogggerFile = SD.open(fileName, FILE_WRITE);
 
-   // if the file opened okay, write to it:
+  // if the file opened okay, write to it:
   if (dataLogggerFile) {
-    if(isNewFile) {
-    // write header
+    if (isNewFile) {
+      // write header
       dataLogggerFile.println( F("'time','IAQ','ACCURACY','TEMP','HUMIDITY','CO2EQ','VOCEQ','IAQS'"));
     }
 
-     dataLogggerFile.print( logTime);
-     dataLogggerFile.print(",");
-     dataLogggerFile.print( co2Sensor.iaq());
-     dataLogggerFile.print(",");
-     dataLogggerFile.print( co2Sensor.accuracy());
-     dataLogggerFile.print(",");
-     dataLogggerFile.print( co2Sensor.comp_t());
-     dataLogggerFile.print(",");
-     dataLogggerFile.print( co2Sensor.comp_h());
-     dataLogggerFile.print(",");
-     dataLogggerFile.print( co2Sensor.co2_eq());
-     dataLogggerFile.print(",");
-     dataLogggerFile.print( co2Sensor.b_voc_eq());
-     dataLogggerFile.print(",");
-     dataLogggerFile.print( co2Sensor.iaq_s());
-     dataLogggerFile.println("");           
-     // close the file:
-     dataLogggerFile.close();
+    dataLogggerFile.print( logTime);
+    dataLogggerFile.print(",");
+    dataLogggerFile.print( co2Sensor.iaq());
+    dataLogggerFile.print(",");
+    dataLogggerFile.print( co2Sensor.accuracy());
+    dataLogggerFile.print(",");
+    dataLogggerFile.print( co2Sensor.comp_t());
+    dataLogggerFile.print(",");
+    dataLogggerFile.print( co2Sensor.comp_h());
+    dataLogggerFile.print(",");
+    dataLogggerFile.print( co2Sensor.co2_eq());
+    dataLogggerFile.print(",");
+    dataLogggerFile.print( co2Sensor.b_voc_eq());
+    dataLogggerFile.print(",");
+    dataLogggerFile.print( co2Sensor.iaq_s());
+    dataLogggerFile.println("");
+    // close the file:
+    dataLogggerFile.close();
   } else {
-      // if the file didn't open, print an error:
-      Serial.print("error openning ");
-      Serial.println(fileName);
-      Serial.print("Log Time ");
-      Serial.println(logTime);
+    // if the file didn't open, print an error:
+    Serial.print("error openning ");
+    Serial.println(fileName);
+    Serial.print("Log Time ");
+    Serial.println(logTime);
   }
 }
 
 void loop()
 {
 
-    unsigned long msNow = millis();
-    if(action != IDLE) {
-      tft.setCursor(0,0);
-    
-      switch(action) {
-        case LEFT: tftLedLevel-=10; break;
-        case RIGHT: tftLedLevel+=10;break;
-        case ENTER: showLogs();nextLayout(); break;
-        default: break;
-      }
-      tftLedLevel %=256;
-       analogWrite(LCD_LED_PWM, tftLedLevel % 256);
-      action= IDLE;
+  unsigned long msNow = millis();
+  if (action != IDLE) {
+    tft.setCursor(0, 0);
+
+    switch (action) {
+      case LEFT: tftLedLevel -= 10; break;
+      case RIGHT: tftLedLevel += 10; break;
+      case ENTER: showLogs(); nextLayout(); break;
+      default: break;
     }
-  
+    tftLedLevel %= 256;
+    analogWrite(LCD_LED_PWM, tftLedLevel % 256);
+    action = IDLE;
+  }
+
   if (envEnabled && msNow - lastTimeDisplayUpdate >= 1000L )
   {
-      displayDateTime();
-      if( msNow - lastTimeUpdate >= 300000L) { // refresh time each 5 minutes
-        //updateTime();
-        lastTimeUpdate = msNow;
-      }
-      lastTimeDisplayUpdate = msNow;
-      
+    displayDateTime();
+    if ( msNow - lastTimeUpdate >= 300000L) { // refresh time each 5 minutes
+      //updateTime();
+      lastTimeUpdate = msNow;
+    }
+    lastTimeDisplayUpdate = msNow;
+
   }
 
   if (niclaEnabled) {
@@ -316,9 +316,9 @@ void loop()
       case VALUESDISPLAY : updateValuesDisplay(); break;
       case GRAPHDISPLAY : updateGraphDisplay(); break;
       default: updateIAQDisplay();
-    } 
-    
-    if(isSDReady &&  ( millis() - logTime) > DATA_LOG_INTERVAL) {
+    }
+
+    if (isSDReady &&  ( millis() - logTime) > DATA_LOG_INTERVAL) {
       logTime = millis();
       sdLogData();
     }
@@ -326,31 +326,31 @@ void loop()
 }
 
 void nextLayout() {
-    switch (layout) {
-        case IAQDISPLAY : layout = VALUESDISPLAY; break;
-        case VALUESDISPLAY : layout = GRAPHDISPLAY; break;
-        case GRAPHDISPLAY :  layout =IAQDISPLAY; break;
-        default: layout = IAQDISPLAY;
-    } 
-    initDisplay(layout);
+  switch (layout) {
+    case IAQDISPLAY : layout = VALUESDISPLAY; break;
+    case VALUESDISPLAY : layout = GRAPHDISPLAY; break;
+    case GRAPHDISPLAY :  layout = IAQDISPLAY; break;
+    default: layout = IAQDISPLAY;
+  }
+  initDisplay(layout);
 }
 
 
 
 void initValuesDisplay() {
-    tft.setTextSize(0);
+  tft.setTextSize(0);
   tft.setTextColor(ST77XX_GRAY_FA);
   tft.setFont(NULL);
-  tft.setCursor(tft.width()-20, tft.height()/2 -30);
+  tft.setCursor(tft.width() - 20, tft.height() / 2 - 30);
   tft.print(F("iaq"));
-  tft.drawRGBBitmap(10, tft.height()/2, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
-  tft.drawRGBBitmap(10, tft.height()/2+30, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
+  tft.drawRGBBitmap(10, tft.height() / 2, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
+  tft.drawRGBBitmap(10, tft.height() / 2 + 30, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
   updateValuesDisplay();
 
 }
 
-void updateValuesDisplay(){
-  BHY2Host.update(100);      
+void updateValuesDisplay() {
+  BHY2Host.update(100);
   if (millis() - printTime > 1000) {
     printTime = millis();
     updateSensorData();
@@ -366,22 +366,22 @@ void updateValuesDisplay(){
 
 
 void initIAQDisplay() {
-  tft.drawRGBBitmap(3,135, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
-  tft.drawRGBBitmap( tft.width()/2+15,135, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
+  tft.drawRGBBitmap(3, 135, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
+  tft.drawRGBBitmap( tft.width() / 2 + 15, 135, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
 }
 void updateIAQDisplay() {
-    if (niclaEnabled) {
-      BHY2Host.update(100);      
-      if (millis() - printTime > 1000) {
-        printTime = millis();
-        niclaSeconds = millis()/1000;
-        updateSensorData();
-        displayLevel((int)iaq);
-        displayTemperature((int) niclaTemperature);
-        displayHumidity((int) niclaHumidity);
-        displayAccuracy((int) accuracy);
-      }      
+  if (niclaEnabled) {
+    BHY2Host.update(100);
+    if (millis() - printTime > 1000) {
+      printTime = millis();
+      niclaSeconds = millis() / 1000;
+      updateSensorData();
+      displayLevel((int)iaq);
+      displayTemperature((int) niclaTemperature);
+      displayHumidity((int) niclaHumidity);
+      displayAccuracy((int) accuracy);
     }
+  }
 }
 
 
@@ -392,33 +392,33 @@ void initGraphDisplay() {
   int o3x = o2x;
   int o1y = 15;
   int marginY = 8;
-  int h1 = (tft.height() -o1y) /3 - marginY;
+  int h1 = (tft.height() - o1y) / 3 - marginY;
   int o2y = o1y + h1 + marginY ;
   int o3y = o2y + h1 + marginY ;
 
-  int w1 = tft.width() - 2*o1x;
-  
-  tft.drawRect(o1x, o1y,w1 ,  h1, WHITE);
+  int w1 = tft.width() - 2 * o1x;
+
+  tft.drawRect(o1x, o1y, w1 ,  h1, WHITE);
   tft.drawRect(o2x, o2y, w1,  h1, WHITE);
-  tft.drawRect(o3x, o3y,w1,  h1, WHITE);
-  int length = h1 /2;
+  tft.drawRect(o3x, o3y, w1,  h1, WHITE);
+  int length = h1 / 2;
 
   tft.setTextSize(0);
   tft.setTextColor(ST77XX_GRAY_FA);
   tft.setFont(NULL);
-  tft.setCursor(0,o1y+h1);
+  tft.setCursor(0, o1y + h1);
   tft.print(F("          iaq"));
-  tft.setCursor(0,o2y+h1);
+  tft.setCursor(0, o2y + h1);
   tft.print(F("         temp"));
-  tft.setCursor(0,o3y+h1);
+  tft.setCursor(0, o3y + h1);
   tft.print(F("     % humidity"));
 
   char fileName[10];
   char title[10];
- 
-  sprintf(title, "%02d.%02d.%02d",  rtc.getYear(), rtc.getMonth(),rtc.getDay());
-  sprintf(fileName, "%02d%02d%02d.txt",  rtc.getYear(), rtc.getMonth(),rtc.getDay()); 
-  tft.setCursor(3,3);
+
+  sprintf(title, "%02d.%02d.%02d",  rtc.getYear(), rtc.getMonth(), rtc.getDay());
+  sprintf(fileName, "%02d%02d%02d.txt",  rtc.getYear(), rtc.getMonth(), rtc.getDay());
+  tft.setCursor(3, 3);
   tft.print(title);
 
   dataLogggerFile = SD.open(fileName, FILE_READ);
@@ -432,29 +432,29 @@ void initGraphDisplay() {
     while (dataLogggerFile.available()) {
       // 19:33:09,205,3,26.76,35.12,2932,28.85,293
 
-     String found = dataLogggerFile.readStringUntil( ',');
-     int fiaq = dataLogggerFile.parseInt(); // co2Sensor.iaq());
+      String found = dataLogggerFile.readStringUntil( ',');
+      int fiaq = dataLogggerFile.parseInt(); // co2Sensor.iaq());
 
-     int faccuracy = dataLogggerFile.parseInt();// co2Sensor.accuracy());
+      int faccuracy = dataLogggerFile.parseInt();// co2Sensor.accuracy());
 
-     float ftemp = dataLogggerFile.parseFloat();//( co2Sensor.comp_t());
-     float fhumidity = dataLogggerFile.parseFloat(); //( co2Sensor.comp_h());
-     int fco2eq = dataLogggerFile.parseInt(); // co2Sensor.co2_eq());
-     float fvoceq = dataLogggerFile.parseFloat(); // co2Sensor.b_voc_eq());
-     int fiaqs = dataLogggerFile.parseInt(); //( co2Sensor.iaq_s());
+      float ftemp = dataLogggerFile.parseFloat();//( co2Sensor.comp_t());
+      float fhumidity = dataLogggerFile.parseFloat(); //( co2Sensor.comp_h());
+      int fco2eq = dataLogggerFile.parseInt(); // co2Sensor.co2_eq());
+      float fvoceq = dataLogggerFile.parseFloat(); // co2Sensor.b_voc_eq());
+      int fiaqs = dataLogggerFile.parseInt(); //( co2Sensor.iaq_s());
 
-     int niaq = map(fiaq, 0, 500, 0, h1);
-     int ntemp = map(ftemp, -30, 50, 0, h1);
-     int nhumidity = map(fhumidity, 0, 100, 0, h1);
-     if (count< w1-2) {
-        tft.drawFastVLine(o1x+count+1, o1y+ h1 - niaq -1 , niaq -2, GREEN);
-        tft.drawFastVLine(o2x+count+1, o2y+ h1 - ntemp -1 , ntemp -2, YELLOW);
-        tft.drawFastVLine(o3x+count+1, o3y+ h1 - nhumidity -1 , nhumidity -2, BLUE);
-    } else {
+      int niaq = map(fiaq, 0, 500, 0, h1);
+      int ntemp = map(ftemp, -30, 50, 0, h1);
+      int nhumidity = map(fhumidity, 0, 100, 0, h1);
+      if (count < w1 - 2) {
+        tft.drawFastVLine(o1x + count + 1, o1y + h1 - niaq - 1 , niaq - 2, GREEN);
+        tft.drawFastVLine(o2x + count + 1, o2y + h1 - ntemp - 1 , ntemp - 2, YELLOW);
+        tft.drawFastVLine(o3x + count + 1, o3y + h1 - nhumidity - 1 , nhumidity - 2, BLUE);
+      } else {
         dataLogggerFile.close();
         break;
-    }
-     ++count;
+      }
+      ++count;
 
 
     }
@@ -477,7 +477,7 @@ void updateGraphDisplay() {
 void updateSensorData() {
 #if DEBUG
   Serial.println(co2Sensor.toString());
-#endif          
+#endif
   niclaTemperature = co2Sensor.comp_t();
   iaq = co2Sensor.iaq();
   accuracy =  co2Sensor.accuracy();
@@ -486,20 +486,20 @@ void updateSensorData() {
 
 void setupTime() {
   rtc.begin();
-  #ifdef NTPUPDATE 
+#ifdef NTPUPDATE
   WiFi.begin(SECRET_SSID, SECRET_PASS);
- 
+
   Serial.print("Connecting to ");
   Serial.print(SECRET_SSID);
- 
+
   while (WiFi.status() != WL_CONNECTED)
   {
     Serial.print(".");
     delay(250);
   }
- 
+
   Serial.println(" Done!");
-   
+
   ntpClient.begin();
   envEnabled = true;
   ntpClient.update();
@@ -510,7 +510,7 @@ void setupTime() {
 
   ntpClient.end();
   WiFi.end();
-  #endif
+#endif
 }
 
 
@@ -518,7 +518,7 @@ void setupTime() {
 void initTFT() {
   tft.initR(INITR_BLACKTAB);      // Init ST7735S chip, black tab
   tft.setRotation(2);
-  tft.fillScreen(ST77XX_BLACK);   
+  tft.fillScreen(ST77XX_BLACK);
 }
 
 void initDisplay(Layouts layout) {
@@ -529,21 +529,21 @@ void initDisplay(Layouts layout) {
     case VALUESDISPLAY : initValuesDisplay(); break;
     case GRAPHDISPLAY : initGraphDisplay(); break;
     default: initIAQDisplay();
-  }    
+  }
 
 }
 
 
 
-void displayTemperature(const int temperature){
+void displayTemperature(const int temperature) {
   tft.setTextSize(0);
-  tft.setCursor(6,156);
+  tft.setCursor(6, 156);
   tft.setTextColor(ST77XX_GRAY_FA);
   tft.setFont(&FreeMonoBold9pt7b);
-  //drawUpdatedValue2d(temperature, 18 ,156);  
+  //drawUpdatedValue2d(temperature, 18 ,156);
   tempdisplay.display(temperature);
   tft.setFont(NULL);
-  tft.setCursor(14,146);
+  tft.setCursor(14, 146);
   tft.print("C");
 }
 
@@ -554,91 +554,91 @@ void displayHumidity(const int humidity) {
   //drawUpdatedValue2d(humidity, tft.width()/2 + 28,156);
   humiditydisplay.display(humidity);
   tft.setFont(NULL);
-  tft.setCursor(tft.width() -40,146);
+  tft.setCursor(tft.width() - 40, 146);
   tft.print("%");
 }
 
-void displayLevel(const int level){
-    tft.setFont(NULL);
-    //tft.setCursor(55,30);
-    //tft.setTextColor(ST77XX_GRAY_FA);
-    //tft.print("IAQ");
-    tft.setCursor(18,82);
-    tft.setTextColor(ST77XX_GRAY_FA);
-    tft.setTextSize(0);
-    tft.setFont(&FreeMonoBoldOblique18pt7b);
-    //drawUpdatedValue4d(co2level,20,88);
-    tft.setFont(NULL);
-    tft.setCursor(88,90);
-    tft.setTextColor(ST77XX_GRAY_FA);
-    tft.print("IAQ");
-    drawGauge(level, 10, 600);
-    tft.setFont(NULL);
-    iaqdisplay.display(level);
+void displayLevel(const int level) {
+  tft.setFont(NULL);
+  //tft.setCursor(55,30);
+  //tft.setTextColor(ST77XX_GRAY_FA);
+  //tft.print("IAQ");
+  tft.setCursor(18, 82);
+  tft.setTextColor(ST77XX_GRAY_FA);
+  tft.setTextSize(0);
+  tft.setFont(&FreeMonoBoldOblique18pt7b);
+  //drawUpdatedValue4d(co2level,20,88);
+  tft.setFont(NULL);
+  tft.setCursor(88, 90);
+  tft.setTextColor(ST77XX_GRAY_FA);
+  tft.print("IAQ");
+  drawGauge(level, 10, 600);
+  tft.setFont(NULL);
+  iaqdisplay.display(level);
 }
 
 void drawUpdatedValue4d(const int number, int x, int y)
 {
-    int16_t x1, y1;
-    uint16_t w, h;
-    char buffer[5]="6666";
-    snprintf(buffer,sizeof(buffer), "%4d", number);
-    tft.getTextBounds(buffer, x, y, &x1, &y1, &w, &h); //calc width of new string
-    tft.fillRect(x,y-h,w+4, h+2,  ST77XX_BLACK);
-    tft.setCursor(x,y);
-    tft.print(buffer);
+  int16_t x1, y1;
+  uint16_t w, h;
+  char buffer[5] = "6666";
+  snprintf(buffer, sizeof(buffer), "%4d", number);
+  tft.getTextBounds(buffer, x, y, &x1, &y1, &w, &h); //calc width of new string
+  tft.fillRect(x, y - h, w + 4, h + 2,  ST77XX_BLACK);
+  tft.setCursor(x, y);
+  tft.print(buffer);
 }
 
 void drawUpdatedValue2d(const int number, int x, int y)
 {
-    int16_t x1, y1;
-    uint16_t w, h;
-    char buffer[3]="66";
-    snprintf(buffer,sizeof(buffer), "%2d", number);
-    tft.getTextBounds(buffer, x, y, &x1, &y1, &w, &h); //calc width of new string
-    tft.fillRect(x,y-h,w+4, h+2,  ST77XX_BLACK);
-    tft.setCursor(x,y);
-    tft.print(buffer);
+  int16_t x1, y1;
+  uint16_t w, h;
+  char buffer[3] = "66";
+  snprintf(buffer, sizeof(buffer), "%2d", number);
+  tft.getTextBounds(buffer, x, y, &x1, &y1, &w, &h); //calc width of new string
+  tft.fillRect(x, y - h, w + 4, h + 2,  ST77XX_BLACK);
+  tft.setCursor(x, y);
+  tft.print(buffer);
 }
 
 // format and print time
 void displayDateTime()
-{ 
-    //ntpClient.update();
-    char buf[8];
-    sprintf(buf, "%.2d:%.2d", rtc.getHours() % 24, rtc.getMinutes());
-    tft.fillRect(tft.width() - 33, 3,33,12,ST77XX_BLACK);
-    tft.setFont(NULL);
-    tft.setTextSize(0);
-    tft.setCursor(tft.width() - 33, 3);
-    tft.setTextColor(ST77XX_GRAY_FA);
-    tft.print(buf);
+{
+  //ntpClient.update();
+  char buf[8];
+  sprintf(buf, "%.2d:%.2d", rtc.getHours() % 24, rtc.getMinutes());
+  tft.fillRect(tft.width() - 33, 3, 33, 12, ST77XX_BLACK);
+  tft.setFont(NULL);
+  tft.setTextSize(0);
+  tft.setCursor(tft.width() - 33, 3);
+  tft.setTextColor(ST77XX_GRAY_FA);
+  tft.print(buf);
 }
 
 void displayAccuracy(const int accuracy)
-{ 
-    int width = 4;
-    for (int i=0; i<4; i++) {
-      if (i<=accuracy) {
-        tft.fillRect(i*width+2*i, 2,width,6,ST77XX_WHITE);
-      } else {
-        tft.fillRect(i*width+2*i+1, 2+1,width-2,6-2,ST77XX_BLACK);
-        tft.drawRect(i*width+2*i, 2,width,6,ST77XX_WHITE);
-      }
+{
+  int width = 4;
+  for (int i = 0; i < 4; i++) {
+    if (i <= accuracy) {
+      tft.fillRect(i * width + 2 * i, 2, width, 6, ST77XX_WHITE);
+    } else {
+      tft.fillRect(i * width + 2 * i + 1, 2 + 1, width - 2, 6 - 2, ST77XX_BLACK);
+      tft.drawRect(i * width + 2 * i, 2, width, 6, ST77XX_WHITE);
     }
+  }
 }
 
 
 void drawGauge (const int level, const int min, const int max) {
-    static int lastValue;
-    int degrees = (log(level)  / log(2) - log(min)  / log(2)) / (log(max)/log(2) - log(min)/log(2)) * 240;
-    fillArc2(tft.width()/2, tft.height()/2-8, -120, 20, tft.width()/2-6, tft.width()/2-6, 6, GAUGE_GREEN);
-    fillArc2(tft.width()/2, tft.height()/2-8,  -60, 20, tft.width()/2-6, tft.width()/2-6, 6, GAUGE_YELLOW);
-    fillArc2(tft.width()/2, tft.height()/2-8,    0, 20, tft.width()/2-6, tft.width()/2-6, 6, GAUGE_ORANGE);
-    fillArc2(tft.width()/2, tft.height()/2-8,   60, 20, tft.width()/2-6, tft.width()/2-6, 6, GAUGE_RED);
-    fillArc2(tft.width()/2, tft.height()/2-8, lastValue-120, 1, tft.width()/2-16, tft.width()/2-16, 6, ST7735_BLACK );
-    fillArc2(tft.width()/2, tft.height()/2-8, degrees-120,   1, tft.width()/2-16, tft.width()/2-16, 6, ST7735_WHITE );
-    lastValue = degrees;
+  static int lastValue;
+  int degrees = (log(level)  / log(2) - log(min)  / log(2)) / (log(max) / log(2) - log(min) / log(2)) * 240;
+  fillArc2(tft.width() / 2, tft.height() / 2 - 8, -120, 20, tft.width() / 2 - 6, tft.width() / 2 - 6, 6, GAUGE_GREEN);
+  fillArc2(tft.width() / 2, tft.height() / 2 - 8,  -60, 20, tft.width() / 2 - 6, tft.width() / 2 - 6, 6, GAUGE_YELLOW);
+  fillArc2(tft.width() / 2, tft.height() / 2 - 8,    0, 20, tft.width() / 2 - 6, tft.width() / 2 - 6, 6, GAUGE_ORANGE);
+  fillArc2(tft.width() / 2, tft.height() / 2 - 8,   60, 20, tft.width() / 2 - 6, tft.width() / 2 - 6, 6, GAUGE_RED);
+  fillArc2(tft.width() / 2, tft.height() / 2 - 8, lastValue - 120, 1, tft.width() / 2 - 16, tft.width() / 2 - 16, 6, ST7735_BLACK );
+  fillArc2(tft.width() / 2, tft.height() / 2 - 8, degrees - 120,   1, tft.width() / 2 - 16, tft.width() / 2 - 16, 6, ST7735_WHITE );
+  lastValue = degrees;
 }
 
 // #########################################################################
@@ -660,13 +660,13 @@ void fillArc2(int x, int y, int start_angle, int seg_count, int rx, int ry, int 
   byte seg = 3; // Segments are 3 degrees wide = 120 segments for 360 degrees
   byte inc = 3; // Draw segments every 3 degrees, increase to 6 for segmented ring
 
-    // Calculate first pair of coordinates for segment start
-    float sx = cos((start_angle - 90) * DEG2RAD);
-    float sy = sin((start_angle - 90) * DEG2RAD);
-    uint16_t x0 = sx * (rx - w) + x;
-    uint16_t y0 = sy * (ry - w) + y;
-    uint16_t x1 = sx * rx + x;
-    uint16_t y1 = sy * ry + y;
+  // Calculate first pair of coordinates for segment start
+  float sx = cos((start_angle - 90) * DEG2RAD);
+  float sy = sin((start_angle - 90) * DEG2RAD);
+  uint16_t x0 = sx * (rx - w) + x;
+  uint16_t y0 = sy * (ry - w) + y;
+  uint16_t x1 = sx * rx + x;
+  uint16_t y1 = sy * ry + y;
 
   // Draw colour blocks every inc degrees
   for (int i = start_angle; i < start_angle + seg * seg_count; i += inc) {
