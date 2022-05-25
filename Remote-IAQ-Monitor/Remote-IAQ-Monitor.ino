@@ -252,7 +252,6 @@ void sdLogData() {
       // write header
       dataLogggerFile.println( F("'time','IAQ','ACCURACY','TEMP','HUMIDITY','CO2EQ','VOCEQ','IAQS'"));
     }
-
     dataLogggerFile.print( logTime);
     dataLogggerFile.print(",");
     dataLogggerFile.print( co2Sensor.iaq());
@@ -288,8 +287,8 @@ void loop()
     tft.setCursor(0, 0);
 
     switch (action) {
-      case LEFT: tftLedLevel -= 10; break;
-      case RIGHT: tftLedLevel += 10; break;
+      case LEFT: tftLedLevel -= 32; break;
+      case RIGHT: tftLedLevel += 32; break;
       case ENTER: showLogs(); nextLayout(); break;
       default: break;
     }
@@ -446,13 +445,15 @@ void initGraphDisplay() {
       int niaq = map(fiaq, 0, 500, 0, h1);
       int ntemp = map(ftemp, -30, 50, 0, h1);
       int nhumidity = map(fhumidity, 0, 100, 0, h1);
-      if (count < w1 - 2) {
-        tft.drawFastVLine(o1x + count + 1, o1y + h1 - niaq - 1 , niaq - 2, GREEN);
-        tft.drawFastVLine(o2x + count + 1, o2y + h1 - ntemp - 1 , ntemp - 2, YELLOW);
-        tft.drawFastVLine(o3x + count + 1, o3y + h1 - nhumidity - 1 , nhumidity - 2, BLUE);
-      } else {
-        dataLogggerFile.close();
-        break;
+      if(count  % 3 == 0) {
+        if (count/3 < w1 - 2) {
+          tft.drawFastVLine(o1x + count/3 + 1, o1y + h1 - niaq - 1 , niaq - 2, GREEN);
+          tft.drawFastVLine(o2x + count/3 + 1, o2y + h1 - ntemp - 1 , ntemp - 2, YELLOW);
+          tft.drawFastVLine(o3x + count/3 + 1, o3y + h1 - nhumidity - 1 , nhumidity - 2, BLUE);
+        } else {
+          dataLogggerFile.close();
+          break;
+        }
       }
       ++count;
 
@@ -697,6 +698,7 @@ void showLogs() {
   printDirectory(root, 0);
   root.close();
 }
+
 void printDirectory(File dir, int numTabs) {
   while (true) {
     File entry =  dir.openNextFile();
