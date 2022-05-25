@@ -342,9 +342,12 @@ void initValuesDisplay() {
   tft.setFont(NULL);
   tft.setCursor(tft.width() - 20, tft.height() / 2 - 30);
   tft.print(F("iaq"));
+  displayDateTime();
+  printTime=0;
+  updateValuesDisplay();
   tft.drawRGBBitmap(10, tft.height() / 2, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
   tft.drawRGBBitmap(10, tft.height() / 2 + 30, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
-  updateValuesDisplay();
+
 
 }
 
@@ -361,13 +364,15 @@ void updateValuesDisplay() {
 }
 
 
-
-
-
 void initIAQDisplay() {
   tft.drawRGBBitmap(3, 135, (const uint16_t *)termo3.data, termo3.width, termo3.height); // Copy to screen
   tft.drawRGBBitmap( tft.width() / 2 + 15, 135, (const uint16_t *)humidity.data, humidity.width, humidity.height); // Copy to screen
+  printTime=0;
+  updateIAQDisplay();
+
 }
+
+
 void updateIAQDisplay() {
   if (niclaEnabled) {
     BHY2Host.update(100);
@@ -386,6 +391,7 @@ void updateIAQDisplay() {
 
 
 void initGraphDisplay() {
+  displayDateTime();
   int o1x = 10;
   int o2x = o1x;
   int o3x = o2x;
