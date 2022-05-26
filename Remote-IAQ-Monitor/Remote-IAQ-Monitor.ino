@@ -112,7 +112,7 @@ unsigned long lastTimeDisplayUpdate;
 #define SD_CS            A2
 #define LCD_LED_PWM       3
 
-#define DEBOUNCE_DELAY_MS 200
+#define DEBOUNCE_DELAY_MS 50
 #define DATA_LOG_INTERVAL 300000L // 5 minutes
 
 
@@ -199,7 +199,7 @@ void setupNiclaBHYHost() {
   Serial.println("Configuring Nicla...");
   // Update function should be continuously polled if PASSTHORUGH is ENABLED
   // NiclaWiring NICLA_VIA_BLE
-  while (!BHY2Host.begin(false, NICLA_VIA_BLE)) {}
+  while (!BHY2Host.begin(true, NICLA_VIA_BLE)) {}
   Serial.println("NICLA device found!");
   co2Sensor.begin();
 }
@@ -301,7 +301,7 @@ void loop()
   {
     displayDateTime();
     if ( msNow - lastTimeUpdate >= 300000L) { // refresh time each 5 minutes
-      //updateTime();
+      updateTime();
       lastTimeUpdate = msNow;
     }
     lastTimeDisplayUpdate = msNow;
@@ -458,12 +458,10 @@ void initGraphDisplay() {
           tft.drawFastVLine(o3x + count/3 + 1, o3y + h1 - nhumidity - 1 , nhumidity - 2, BLUE);
         } else {
           dataLogggerFile.close();
-          break;
+          return;
         }
       }
       ++count;
-
-
     }
     // close the file:
     dataLogggerFile.close();
@@ -471,13 +469,17 @@ void initGraphDisplay() {
     // if the file didn't open, print an error:
     Serial.println("error opening test.txt");
   }
-
-
 }
 
 void updateGraphDisplay() {
 
-
+  if (niclaEnabled) {
+    BHY2Host.update(100);
+     if (millis() - printTime > 1000) {
+       updateSensorData();
+       printTime = millis();
+     }
+  }
 
 }
 
@@ -489,6 +491,11 @@ void updateSensorData() {
   iaq = co2Sensor.iaq();
   accuracy =  co2Sensor.accuracy();
   niclaHumidity = co2Sensor.comp_h();
+}
+
+void updateTime (){
+  setupTime();
+  setupNiclaBHYHost();
 }
 
 void setupTime() {
