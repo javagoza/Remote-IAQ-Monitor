@@ -300,7 +300,7 @@ void loop()
   if (envEnabled && msNow - lastTimeDisplayUpdate >= 1000L )
   {
     displayDateTime();
-    if ( msNow - lastTimeUpdate >= 300000L) { // refresh time each 5 minutes
+    if ( msNow - lastTimeUpdate >= 43200000L) { // refresh time
       updateTime();
       lastTimeUpdate = msNow;
     }
