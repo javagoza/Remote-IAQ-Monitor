@@ -300,7 +300,7 @@ void loop()
   if (envEnabled && msNow - lastTimeDisplayUpdate >= 1000L )
   {
     displayDateTime();
-    if ( msNow - lastTimeUpdate >= 43200000L) { // refresh time
+    if ( msNow - lastTimeUpdate >= 600000) { // refresh time
       updateTime();
       lastTimeUpdate = msNow;
     }
@@ -309,7 +309,7 @@ void loop()
   }
 
   if (niclaEnabled) {
-    BHY2Host.update(100);
+    BHY2Host.update();
     switch (layout) {
       case IAQDISPLAY : updateIAQDisplay(); break;
       case VALUESDISPLAY : updateValuesDisplay(); break;
@@ -352,7 +352,6 @@ void initValuesDisplay() {
 }
 
 void updateValuesDisplay() {
-  BHY2Host.update(100);
   if (millis() - printTime > 1000) {
     printTime = millis();
     updateSensorData();
@@ -375,7 +374,6 @@ void initIAQDisplay() {
 
 void updateIAQDisplay() {
   if (niclaEnabled) {
-    BHY2Host.update(100);
     if (millis() - printTime > 1000) {
       printTime = millis();
       niclaSeconds = millis() / 1000;
@@ -474,7 +472,6 @@ void initGraphDisplay() {
 void updateGraphDisplay() {
 
   if (niclaEnabled) {
-    BHY2Host.update(100);
      if (millis() - printTime > 1000) {
        updateSensorData();
        printTime = millis();
@@ -494,6 +491,8 @@ void updateSensorData() {
 }
 
 void updateTime (){
+  co2Sensor.end();
+  
   setupTime();
   setupNiclaBHYHost();
 }
