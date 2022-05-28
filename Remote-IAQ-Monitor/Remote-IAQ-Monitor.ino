@@ -80,7 +80,7 @@ NTPClient ntpClient(udpSocket, "pool.ntp.org", utcOffsetSummer);
 #define ST77XX_GRAY_FA 0xFFDF
 
 
-SensorBSEC co2Sensor(SENSOR_ID_BSEC);
+SensorBSEC sensorBSEC(SENSOR_ID_BSEC);
 
 float niclaTemperature;
 int iaq;
@@ -201,7 +201,7 @@ void setupNiclaBHYHost() {
   // NiclaWiring NICLA_VIA_BLE
   while (!BHY2Host.begin(true, NICLA_VIA_BLE)) {}
   Serial.println("NICLA device found!");
-  co2Sensor.begin();
+  sensorBSEC.begin();
 }
 
 void setupSDCardReader() {
@@ -283,19 +283,19 @@ void sdLogData() {
     }
     dataLogggerFile.print( logTime);
     dataLogggerFile.print(",");
-    dataLogggerFile.print( co2Sensor.iaq());
+    dataLogggerFile.print( sensorBSEC.iaq());
     dataLogggerFile.print(",");
-    dataLogggerFile.print( co2Sensor.accuracy());
+    dataLogggerFile.print( sensorBSEC.accuracy());
     dataLogggerFile.print(",");
-    dataLogggerFile.print( co2Sensor.comp_t());
+    dataLogggerFile.print( sensorBSEC.comp_t());
     dataLogggerFile.print(",");
-    dataLogggerFile.print( co2Sensor.comp_h());
+    dataLogggerFile.print( sensorBSEC.comp_h());
     dataLogggerFile.print(",");
-    dataLogggerFile.print( co2Sensor.co2_eq());
+    dataLogggerFile.print( sensorBSEC.co2_eq());
     dataLogggerFile.print(",");
-    dataLogggerFile.print( co2Sensor.b_voc_eq());
+    dataLogggerFile.print( sensorBSEC.b_voc_eq());
     dataLogggerFile.print(",");
-    dataLogggerFile.print( co2Sensor.iaq_s());
+    dataLogggerFile.print( sensorBSEC.iaq_s());
     dataLogggerFile.println("");
     // close the file:
     dataLogggerFile.close();
@@ -310,8 +310,7 @@ void sdLogData() {
 
 void loop()
 {
-  if (!WDT->STATUS.bit.SYNCBUSY)                // Check if the WDT registers are synchronized
-  {
+  if (!WDT->STATUS.bit.SYNCBUSY) {              // Check if the WDT registers are synchronized  
     REG_WDT_CLEAR = WDT_CLEAR_CLEAR_KEY;        // Clear the watchdog timer
   }
 
@@ -469,15 +468,15 @@ void initGraphDisplay() {
       // 19:33:09,205,3,26.76,35.12,2932,28.85,293
 
       String found = dataLogggerFile.readStringUntil( ',');
-      int fiaq = dataLogggerFile.parseInt(); // co2Sensor.iaq());
+      int fiaq = dataLogggerFile.parseInt(); // sensorBSEC.iaq());
 
-      int faccuracy = dataLogggerFile.parseInt();// co2Sensor.accuracy());
+      int faccuracy = dataLogggerFile.parseInt();// sensorBSEC.accuracy());
 
-      float ftemp = dataLogggerFile.parseFloat();//( co2Sensor.comp_t());
-      float fhumidity = dataLogggerFile.parseFloat(); //( co2Sensor.comp_h());
-      int fco2eq = dataLogggerFile.parseInt(); // co2Sensor.co2_eq());
-      float fvoceq = dataLogggerFile.parseFloat(); // co2Sensor.b_voc_eq());
-      int fiaqs = dataLogggerFile.parseInt(); //( co2Sensor.iaq_s());
+      float ftemp = dataLogggerFile.parseFloat();//( sensorBSEC.comp_t());
+      float fhumidity = dataLogggerFile.parseFloat(); //( sensorBSEC.comp_h());
+      int fco2eq = dataLogggerFile.parseInt(); // sensorBSEC.co2_eq());
+      float fvoceq = dataLogggerFile.parseFloat(); // sensorBSEC.b_voc_eq());
+      int fiaqs = dataLogggerFile.parseInt(); //( sensorBSEC.iaq_s());
 
       int niaq = map(fiaq, 0, 500, 0, h1);
       int ntemp = map(ftemp, -30, 50, 0, h1);
@@ -515,16 +514,16 @@ void updateGraphDisplay() {
 
 void updateSensorData() {
 #if DEBUG
-  Serial.println(co2Sensor.toString());
+  Serial.println(sensorBSEC.toString());
 #endif
-  niclaTemperature = co2Sensor.comp_t();
-  iaq = co2Sensor.iaq();
-  accuracy =  co2Sensor.accuracy();
-  niclaHumidity = co2Sensor.comp_h();
+  niclaTemperature = sensorBSEC.comp_t();
+  iaq = sensorBSEC.iaq();
+  accuracy =  sensorBSEC.accuracy();
+  niclaHumidity = sensorBSEC.comp_h();
 }
 
 void updateTime (){
-  co2Sensor.end();
+  //sensorBSEC.end();
   
   setupTime();
   setupNiclaBHYHost();
